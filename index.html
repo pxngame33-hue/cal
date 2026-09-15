@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Android Calculator</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    background: #000;
+    color: white;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.calculator {
+    width: 100%;
+    max-width: 390px;
+    min-height: 100vh;
+    background: #101010;
+    padding: 25px 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+}
+
+/* Top bar */
+.top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.title {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.history-btn {
+    background: #222;
+    border: none;
+    color: white;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    font-size: 20px;
+}
+
+/* Display */
+.display {
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: flex-end;
+    padding: 10px 5px 20px;
+    overflow: hidden;
+}
+
+.previous {
+    color: #888;
+    font-size: 20px;
+    min-height: 30px;
+}
+
+.current {
+    font-size: 52px;
+    font-weight: 300;
+    word-break: break-all;
+}
+
+/* Buttons */
+.buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+
+button {
+    height: 72px;
+    border: none;
+    border-radius: 50%;
+    background: #242424;
+    color: white;
+    font-size: 25px;
+    cursor: pointer;
+}
+
+button:active {
+    transform: scale(0.94);
+    background: #444;
+}
+
+.function {
+    background: #333;
+    color: #ddd;
+}
+
+.operator {
+    background: #ff9800;
+    color: white;
+}
+
+.equal {
+    background: #ff9800;
+    color: white;
+}
+
+.zero {
+    grid-column: span 2;
+    border-radius: 40px;
+}
+
+/* History */
+.history {
+    position: fixed;
+    inset: 0;
+    background: #111;
+    padding: 25px;
+    display: none;
+    z-index: 10;
+}
+
+.history h2 {
+    margin-bottom: 20px;
+}
+
+.history-item {
+    padding: 15px 0;
+    border-bottom: 1px solid #333;
+    color: #ccc;
+}
+
+.close {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    background: #333;
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+}
+</style>
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div class="calculator">
+
+    <div class="top">
+        <div class="title">Calculator</div>
+        <button class="history-btn" onclick="showHistory()">🕘</button>
+    </div>
+
+    <div class="display">
+        <div class="previous" id="previous"></div>
+        <div class="current" id="current">0</div>
+    </div>
+
+    <div class="buttons">
+
+        <button class="function" onclick="clearAll()">AC</button>
+        <button class="function" onclick="deleteNumber()">⌫</button>
+        <button class="function" onclick="percentage()">%</button>
+        <button class="operator" onclick="chooseOperator('/')">÷</button>
+
+        <button onclick="number('7')">7</button>
+        <button onclick="number('8')">8</button>
+        <button onclick="number('9')">9</button>
+        <button class="operator" onclick="chooseOperator('*')">×</button>
+
+        <button onclick="number('4')">4</button>
+        <button onclick="number('5')">5</button>
+        <button onclick="number('6')">6</button>
+        <button class="operator" onclick="chooseOperator('-')">−</button>
+
+        <button onclick="number('1')">1</button>
+        <button onclick="number('2')">2</button>
+        <button onclick="number('3')">3</button>
+        <button class="operator" onclick="chooseOperator('+')">+</button>
+
+        <button class="zero" onclick="number('0')">0</button>
+        <button onclick="decimal()">.</button>
+        <button class="equal" onclick="calculate()">=</button>
+
+    </div>
+</div>
+
+<!-- History screen -->
+<div class="history" id="history">
+    <button class="close" onclick="hideHistory()">✕</button>
+    <h2>Calculation History</h2>
+    <div id="historyList">
+        <p style="color:#777;">No calculations yet.</p>
+    </div>
+</div>
+
+<script>
+
+let current = "0";
+let previous = "";
+let operator = null;
+let resetScreen = false;
+
+let history = [];
+
+const currentDisplay = document.getElementById("current");
+const previousDisplay = document.getElementById("previous");
+
+function updateDisplay() {
+    currentDisplay.textContent = current;
+    previousDisplay.textContent = previous;
+}
+
+function number(num) {
+
+    if (current === "0" || resetScreen) {
+        current = num;
+        resetScreen = false;
+    } else {
+        current += num;
+    }
+
+    updateDisplay();
+}
+
+function decimal() {
+
+    if (resetScreen) {
+        current = "0";
+        resetScreen = false;
+    }
+
+    if (!current.includes(".")) {
+        current += ".";
+    }
+
+    updateDisplay();
+}
+
+function chooseOperator(op) {
+
+    if (operator !== null) {
+        calculate();
+    }
+
+    previous = current + " " + op;
+    operator = op;
+    resetScreen = true;
+
+    updateDisplay();
+}
+
+function calculate() {
+
+    if (operator === null || resetScreen) return;
+
+    let a = parseFloat(previous);
+    let b = parseFloat(current);
+
+    let result;
+
+    if (operator === "+") {
+        result = a + b;
+    }
+
+    if (operator === "-") {
+        result = a - b;
+    }
+
+    if (operator === "*") {
+        result = a * b;
+    }
+
+    if (operator === "/") {
+
+        if (b === 0) {
+            current = "Error";
+            previous = "";
+            operator = null;
+            updateDisplay();
+            return;
+        }
+
+        result = a / b;
+    }
+
+    result = Math.round(result * 100000000) / 100000000;
+
+    let expression = a + " " + operator + " " + b + " = " + result;
+
+    history.unshift(expression);
+
+    current = result.toString();
+    previous = "";
+    operator = null;
+    resetScreen = true;
+
+    updateDisplay();
+}
+
+function clearAll() {
+
+    current = "0";
+    previous = "";
+    operator = null;
+    resetScreen = false;
+
+    updateDisplay();
+}
+
+function deleteNumber() {
+
+    if (current.length === 1) {
+        current = "0";
+    } else {
+        current = current.slice(0, -1);
+    }
+
+    updateDisplay();
+}
+
+function percentage() {
+
+    current = (parseFloat(current) / 100).toString();
+
+    updateDisplay();
+}
+
+function showHistory() {
+
+    const list = document.getElementById("historyList");
+
+    if (history.length === 0) {
+        list.innerHTML = '<p style="color:#777;">No calculations yet.</p>';
+    } else {
+
+        list.innerHTML = "";
+
+        history.forEach(item => {
+
+            const div = document.createElement("div");
+
+            div.className = "history-item";
+            div.textContent = item;
+
+            list.appendChild(div);
+        });
+    }
+
+    document.getElementById("history").style.display = "block";
+}
+
+function hideHistory() {
+    document.getElementById("history").style.display = "none";
+}
+
+/* Keyboard support */
+
+document.addEventListener("keydown", function(e) {
+
+    if (!isNaN(e.key)) {
+        number(e.key);
+    }
+
+    if (e.key === ".") {
+        decimal();
+    }
+
+    if (["+", "-", "*", "/"].includes(e.key)) {
+        chooseOperator(e.key);
+    }
+
+    if (e.key === "Enter" || e.key === "=") {
+        calculate();
+    }
+
+    if (e.key === "Backspace") {
+        deleteNumber();
+    }
+
+    if (e.key === "Escape") {
+        clearAll();
+    }
+});
+
+updateDisplay();
+
+</script>
+
+<script src="script.js"></script>
+</body>
+</html>
